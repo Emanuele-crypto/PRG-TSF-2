@@ -440,6 +440,29 @@ body {
    line-height: 1.2;
 }
 
+/* NUOVO: Sezione totale trasferimenti */
+.transfer-total-section {
+   background-color: #fff3cd;
+   border: 1px solid #ffc107;
+   border-radius: 3px;
+   padding: 6px;
+   margin-top: 6px;
+   font-size: 11px;
+}
+
+.transfer-total-section .total-label {
+   font-weight: bold;
+   color: #856404;
+   margin-bottom: 3px;
+   font-size: 10px;
+}
+
+.transfer-total-section .total-value {
+   font-weight: bold;
+   color: #856404;
+   font-size: 12px;
+}
+
 .transfer-composition-details {
    font-size: 10px;
    color: #856404;
@@ -1038,7 +1061,7 @@ $(document).ready(function() {
        viola: { indexes: [], details: [] }
    };
 
-   // MODIFICATA: Variabili per gestione trasferimenti
+   // MODIFICATA: Variabili per gestione trasferimenti - separata dalla quantità base
    let transferData = {};
    let transferCompositionData = {}; // Per tracciare la composizione dei trasferimenti
 
@@ -1100,7 +1123,7 @@ $(document).ready(function() {
        'TORCHI FASO': 25.00
    };
 
-   // MODIFICATA: Generazione codice ID prodotto - aggiornata per gestire disoleato
+   // MODIFICATA: Generazione codice ID prodotto - aggiornata per gestire bio status
    function generateProductID(card) {
        let id = "";
        
@@ -1156,16 +1179,13 @@ $(document).ready(function() {
            id += polpa + " ";
        }
        
-       // MODIFICATO: Pastorizzazione/Concentrazione/Disoleato
+       // Pastorizzazione/Concentrazione
        const pastorizzato = card.find('.pastorizzato-prima').val();
-       const disoleato = card.find('.disoleato-prima').val();
        const destinazioni = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
        const isConcentrato = destinazioni.some(dest => dest === 'CONCENTRATO');
        
        if (isConcentrato) {
            id += "CP ";
-       } else if (disoleato === 'SI' && pastorizzato === 'SI') {
-           id += "DP ";
        } else if (pastorizzato === 'SI') {
            id += "PP ";
        } else {
@@ -1180,7 +1200,7 @@ $(document).ready(function() {
            id += "N ";
        }
        
-       // Certificazione - considera bio status
+       // MODIFICATA: Certificazione - considera bio status
        const cert = card.find('.certificazione-prodotto').val();
        const bioStatus = card.find('.bio-prima').val();
        
@@ -1200,7 +1220,7 @@ $(document).ready(function() {
        return id.trim();
    }
 
-   // MODIFICATA: Generazione codice ID per destinazione specifica - aggiornata per disoleato
+   // Generazione codice ID per destinazione specifica
    function generateDestinationID(card, dest) {
        const charSection = card.find(`.destination-characteristics[data-dest="${dest}"]`);
        if (charSection.length === 0) return '';
@@ -1259,15 +1279,12 @@ $(document).ready(function() {
            id += polpa + " ";
        }
        
-       // MODIFICATO: Pastorizzazione/Concentrazione/Disoleato della destinazione
+       // Pastorizzazione/Concentrazione della destinazione
        const pastorizzato = charSection.find('.dest-pastorizzato').val();
-       const disoleato = charSection.find('.dest-disoleato').val();
        const isConcentrato = dest === 'CONCENTRATO';
        
        if (isConcentrato) {
            id += "CP ";
-       } else if (disoleato === 'SI' && pastorizzato === 'SI') {
-           id += "DP ";
        } else if (pastorizzato === 'SI') {
            id += "PP ";
        } else {
@@ -1301,7 +1318,7 @@ $(document).ready(function() {
        return id.trim();
    }
 
-   // Funzione per determinare il colore della combinazione di un fornitore
+   // NUOVA: Funzione per determinare il colore della combinazione di un fornitore
    function getSupplierCombinationColor(supplierIndex) {
        for (const [color, data] of Object.entries(combinationData)) {
            if (data.indexes.includes(supplierIndex)) {
@@ -1311,12 +1328,12 @@ $(document).ready(function() {
        return null;
    }
 
-   // Funzione per determinare se un fornitore è destinatario di trasferimenti
+   // NUOVO: Funzione per determinare se un fornitore è destinatario di trasferimenti
    function getSupplierTransferStatus(supplierIndex) {
        return transferCompositionData[supplierIndex] ? 'transfer-target' : null;
    }
 
-   // Funzione per calcolare il totale di una combinazione
+   // NUOVA: Funzione per calcolare il totale di una combinazione
    function calculateCombinationTotal(color) {
        if (!combinationData[color] || !combinationData[color].details) return 0;
        
@@ -1370,18 +1387,16 @@ $(document).ready(function() {
 
    // Funzione per ottenere la resa in base alla linea di trasformazione
    function getYieldByLine(linea) {
-       return yieldsPerLine[linea] || 30;
+       return yieldsPerLine[linea] || 30; // Valore di default se la linea non è trovata
    }
 
-   // MODIFICATA: Funzione per aggiornare il concentrato del fornitore (incluso disoleato)
+   // Funzione per aggiornare il concentrato del fornitore
    window.updateSupplierConcentrato = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        const quantitaPrima = parseFloat(card.find('.quantita-prima').val()) || 0;
        const brix = card.find('.brix-prima').val();
        
-       // Aggiorna campo concentrato se destinazione include CONCENTRATO
-       const destinazioni = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
-       if (destinazioni.includes('CONCENTRATO') && brix && brix !== 'NAT') {
+       if (brix && brix !== 'NAT') {
            const concentrato = calculateConcentrato(quantitaPrima, brix);
            card.find('.quantita-concentrato-prima').val(concentrato + ' kg');
            card.find('.concentrato-prima-row').removeClass('hidden-field');
@@ -1390,18 +1405,18 @@ $(document).ready(function() {
            card.find('.concentrato-prima-row').addClass('hidden-field');
        }
        
-       // Aggiorna il campo ID
+       // Aggiorna anche il campo ID
        updateProductID(index);
    };
 
-   // Aggiorna il campo ID del prodotto
+   // NUOVA FUNZIONE: Aggiorna il campo ID del prodotto
    function updateProductID(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        const productID = generateProductID(card);
        card.find('.product-id').val(productID);
    }
 
-   // MODIFICATA: Crea sezioni caratteristiche per ogni destinazione (incluso disoleato)
+   // NUOVA FUNZIONE: Crea sezioni caratteristiche per ogni destinazione
    function createDestinationCharacteristics(destinations, supplierIndex) {
        let html = '';
        
@@ -1470,16 +1485,6 @@ $(document).ready(function() {
                        </div>
                        
                        <div class="char-row">
-                           <span class="char-label">Disoleato:</span>
-                           <div class="char-input">
-                               <select class="dest-disoleato" data-dest="${dest}" onchange="updateProductID(${supplierIndex})">
-                                   <option value="NO" selected>NO</option>
-                                   <option value="SI">SI</option>
-                               </select>
-                           </div>
-                       </div>
-                       
-                       <div class="char-row">
                            <span class="char-label">Conservato:</span>
                            <div class="char-input">
                                <select class="dest-conservato" data-dest="${dest}" onchange="updateProductID(${supplierIndex})">
@@ -1503,7 +1508,7 @@ $(document).ready(function() {
        return html;
    }
 
-   // MODIFICATA: Genera tabella per stampa con nuova logica per note trasferimenti
+   // MODIFICATA: Genera tabella per stampa con nuovo formato note
    function generatePrintTable() {
        const tbody = $('#print-table-body');
        tbody.empty();
@@ -1574,22 +1579,25 @@ $(document).ready(function() {
            } else if (transferStatus) {
                rowClass = 'transfer-target-row';
                
-               // MODIFICATA: Aggiungi dettagli composizione trasferimenti nelle note con nuovo formato
+               // MODIFICATA: Note trasferimenti con nuovo formato
                if (transferCompositionData[index]) {
-                   const baseAmount = transferCompositionData[index].baseAmount;
-                   const totalAmount = transferCompositionData[index].total;
-                   const transfersDetails = transferCompositionData[index].details.map(detail => 
-                       `Lt ${detail.amount} da F${detail.fromSupplier} (${detail.fromName})`
+                   const baseAmount = parseFloat(card.find('.quantita-prima').val()) || 0;
+                   const totalTransfer = transferCompositionData[index].details.reduce((sum, detail) => 
+                       sum + parseFloat(detail.amount), 0);
+                   const totalAmount = baseAmount;
+                   
+                   const compositionDetails = transferCompositionData[index].details.map(detail => 
+                       `Di cui Lt ${detail.amount} da F${detail.fromSupplier} (${detail.fromName})`
                    ).join(', ');
                    
                    // NUOVO FORMATO: "Totale: Q. 20000 lt, Di cui Lt 5000 da F1 (RESTUCCIA)"
-                   const transferNote = `Totale: Q. ${totalAmount.toFixed(0)} lt, Di cui ${transfersDetails}`;
+                   const transferNote = `Totale: Q. ${totalAmount}kg, ${compositionDetails}`;
                    note = note ? `${note} - ${transferNote}` : transferNote;
                }
            }
            
            // Determina stile bio
-           const bioStatus = card.find('.dest-bio').first().val() || 'SI';
+           const bioStatus = card.find('.dest-bio').first().val() || 'SI'; // Prende il primo bio status dalle destinazioni
            const certificazione = card.find('.certificazione-prodotto').val();
            const isBioSpecific = ['BIO EU', 'BIO DEM', 'BIO NTD', 'BIO DEM/NTD'].includes(certificazione);
            
@@ -1634,7 +1642,7 @@ $(document).ready(function() {
        generatePrintTable();
    });
 
-   // Funzione per aggiornare la resa in base alla linea selezionata
+// Funzione per aggiornare la resa in base alla linea selezionata
    window.updateYieldByLine = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        const linea = card.find('.linea-trasformazione').val();
@@ -1645,10 +1653,10 @@ $(document).ready(function() {
        }
    };
 
-   // MODIFICATO: Crea card fornitore con giacenza ed entrata come campi modificabili e nuovo campo disoleato
+   // MODIFICATO: Crea card fornitore con giacenza ed entrata come campi modificabili
    function createSupplierCard(index) {
        const agrume = $('#tipo-agrume-giornaliero').val();
-       const defaultYield = 30;
+       const defaultYield = 30; // Valore di default
 
        const varietyOptionsHtml = agrume && varietyOptions[agrume] ? 
            varietyOptions[agrume].map(v => `<option value="${v.value}">${v.text}</option>`).join('') : 
@@ -1806,11 +1814,15 @@ $(document).ready(function() {
                    </div>
                </div>
 
-               <!-- Campo Q. Concentrato -->
-               <div class="form-row concentrato-prima-row hidden-field">
-                   <span class="form-label">Q. Conc. (kg):</span>
+               <!-- NUOVA SEZIONE: Totale con trasferimenti -->
+               <div class="form-row">
+                   <span class="form-label">Totale Succo 1ª:</span>
                    <div class="form-input">
-                       <input type="text" class="quantita-concentrato-prima concentrato-field" readonly>
+                       <div class="transfer-total-section hidden-field">
+                           <div class="total-label">Totale (Base + Trasferimenti):</div>
+                           <div class="total-value" id="total-with-transfers-${index}">0.0 kg</div>
+                           <div class="transfer-composition-details" style="margin-top: 3px;"></div>
+                       </div>
                    </div>
                </div>
 
@@ -1876,86 +1888,6 @@ $(document).ready(function() {
                    </div>
                </div>
 
-               <!-- NUOVO: Campo Disoleato -->
-               <div class="form-row">
-                   <span class="form-label">Disoleato:</span>
-                   <div class="form-input">
-                       <select class="disoleato-prima" onchange="updateProductID(${index})">
-                           <option value="NO" selected>NO</option>
-                           <option value="SI">SI</option>
-                       </select>
-                   </div>
-               </div>
-
-               <!-- Altri campi caratteristiche prodotto -->
-               <div class="form-row">
-                   <span class="form-label">Tenore Polpa:</span>
-                   <div class="form-input">
-                       <select class="tenore-polpa-prima" onchange="toggleAltroTenore(${index}, 'prima'); updateProductID(${index});">
-                           <option value="STANDARD">STANDARD</option>
-                           <option value="LIMPIDO">LIMPIDO</option>
-                           <option value="<1%"><1%</option>
-                           <option value="2%">2%</option>
-                           <option value="3%">3%</option>
-                           <option value="6%">6%</option>
-                           <option value="ALTRO">ALTRO</option>
-                       </select>
-                       <input type="text" class="altro-tenore-prima hidden-field" placeholder="Altro tenore" style="margin-top: 3px;">
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">°BX:</span>
-                   <div class="form-input">
-                       <select class="brix-prima" onchange="toggleAltroBrix(${index}, 'prima'); updateSupplierConcentrato(${index}); updateProductID(${index});">
-                           <option value="NAT">NAT</option>
-                           <option value="20">20</option>
-                           <option value="32">32</option>
-                           <option value="40">40</option>
-                           <option value="45">45</option>
-                           <option value="48">48</option>
-                           <option value="50">50</option>
-                           <option value="55">55</option>
-                           <option value="60">60</option>
-                           <option value="63.5">63.5</option>
-                           <option value="65">65</option>
-                           <option value="ALTRO">ALTRO</option>
-                       </select>
-                       <input type="text" class="altro-brix-prima hidden-field" placeholder="Altro Brix" style="margin-top: 3px;">
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Bio:</span>
-                   <div class="form-input">
-                       <select class="bio-prima" onchange="updateProductID(${index})">
-                           <option value="SI">SI</option>
-                           <option value="NO">NO</option>
-                           <option value="DECLASSATO">DECLASSATO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Pastorizzato:</span>
-                   <div class="form-input">
-                       <select class="pastorizzato-prima" onchange="updateProductID(${index})">
-                           <option value="SI">SI</option>
-                           <option value="NO">NO</option>
-                       </select>
-                   </div>
-               </div>
-
-               <div class="form-row">
-                   <span class="form-label">Conservato:</span>
-                   <div class="form-input">
-                       <select class="conservato-prima" onchange="updateProductID(${index})">
-                           <option value="SI">SI</option>
-                           <option value="NO" selected>NO</option>
-                       </select>
-                   </div>
-               </div>
-
                <!-- Pulsanti compatti -->
                <div style="margin-top: 8px; text-align: center;">
                    <button type="button" class="btn btn-warning" onclick="resetSupplier(${index})" style="padding: 3px 8px; font-size: 10px; margin: 2px;">
@@ -1988,7 +1920,7 @@ $(document).ready(function() {
        updateAllTransferOptions();
    };
 
-   // Funzione di calcolo con nuova logica: rimanenza = (giacenza + entrata) - trasformata
+   // MODIFICATA: Funzione di calcolo con nuova logica: rimanenza = (giacenza + entrata) - trasformata
    window.calculateSupplier = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        
@@ -2007,37 +1939,8 @@ $(document).ready(function() {
        if (trasformata > 0 && !quantitaPrimaField.hasClass('combination-result') && !quantitaPrimaField.hasClass('transfer-result')) {
            const quantitaPrima = (trasformata * resaPrima / 100).toFixed(1);
            quantitaPrimaField.val(quantitaPrima);
-           
-           // AGGIORNAMENTO: Se c'è composizione trasferimenti, aggiorna la base
-           if (transferCompositionData[index]) {
-               transferCompositionData[index].baseAmount = parseFloat(quantitaPrima);
-               // Ricalcola il totale
-               const transfersTotal = transferCompositionData[index].details.reduce((sum, detail) => 
-                   sum + parseFloat(detail.amount), 0);
-               const newTotal = transferCompositionData[index].baseAmount + transfersTotal;
-               transferCompositionData[index].total = newTotal;
-               quantitaPrimaField.val(newTotal.toFixed(1));
-               
-               // Aggiorna dettagli composizione
-               const compositionText = transferCompositionData[index].details.map(detail => 
-                   `F${detail.fromSupplier}= ${detail.amount}kg`
-               ).join(' + ');
-               const totalText = `Base ${transferCompositionData[index].baseAmount}kg + Trasf. ${transfersTotal.toFixed(1)}kg = Tot. ${newTotal.toFixed(1)}kg`;
-               
-               const compositionDetailsContainer = card.find('.transfer-composition-details');
-               compositionDetailsContainer.html(`<strong>Composizione Trasferimenti:</strong><br/>${compositionText}<br/><strong>${totalText}</strong>`);
-           }
        } else if (trasformata === 0 && !quantitaPrimaField.hasClass('combination-result') && !quantitaPrimaField.hasClass('transfer-result')) {
            quantitaPrimaField.val('');
-           
-           // Reset anche la composizione trasferimenti se non c'è trasformata
-           if (transferCompositionData[index]) {
-               transferCompositionData[index].baseAmount = 0;
-               const transfersTotal = transferCompositionData[index].details.reduce((sum, detail) => 
-                   sum + parseFloat(detail.amount), 0);
-               transferCompositionData[index].total = transfersTotal;
-               quantitaPrimaField.val(transfersTotal > 0 ? transfersTotal.toFixed(1) : '');
-           }
        }
        
        calculateEndTime(index);
@@ -2045,90 +1948,91 @@ $(document).ready(function() {
        updateSummarySection();
        updateDistributionTotal(index);
        updateSupplierConcentrato(index);
+       updateTransferTotalDisplay(index); // NUOVO: Aggiorna display totale
    };
 
-   window.calculateEndTime = function(index) {
-       const card = $(`.supplier-card[data-supplier-index="${index}"]`);
-       const quantitaTrasformata = parseFloat(card.find('.quantita-trasformata').val()) || 0;
-       const portata = parseFloat(card.find('.portata-impianto').val()) || 0;
-       const orarioInizio = card.find('.orario-inizio').val();
+  window.calculateEndTime = function(index) {
+   const card = $(`.supplier-card[data-supplier-index="${index}"]`);
+   const quantitaTrasformata = parseFloat(card.find('.quantita-trasformata').val()) || 0;
+   const portata = parseFloat(card.find('.portata-impianto').val()) || 0;
+   const orarioInizio = card.find('.orario-inizio').val();
+   
+   if (quantitaTrasformata > 0 && portata > 0 && orarioInizio) {
+       const durataTotaleMinuti = Math.round((quantitaTrasformata / portata) * 60);
        
-       if (quantitaTrasformata > 0 && portata > 0 && orarioInizio) {
-           const durataTotaleMinuti = Math.round((quantitaTrasformata / portata) * 60);
-           
-           const dataLavorazione = $('#data-lavorazione').val();
-           if (!dataLavorazione) {
-               card.find('.orario-fine-display').html('');
-               return;
-           }
-           
-           const [oraInizio, minutiInizio] = orarioInizio.split(':').map(n => parseInt(n));
-           const dataInizio = new Date(dataLavorazione);
-           dataInizio.setHours(oraInizio, minutiInizio, 0, 0);
-           
-           const dataFine = new Date(dataInizio.getTime() + durataTotaleMinuti * 60 * 1000);
-           
-           // Arrotonda al quarto d'ora superiore
-           const minutiFine = dataFine.getMinutes();
-           const minutiArrotondati = Math.ceil(minutiFine / 15) * 15;
-           if (minutiArrotondati === 60) {
-               dataFine.setHours(dataFine.getHours() + 1, 0, 0, 0);
-           } else {
-               dataFine.setMinutes(minutiArrotondati, 0, 0);
-           }
-           
-           const oreFine = dataFine.getHours().toString().padStart(2, '0');
-           const minutiFineStr = dataFine.getMinutes().toString().padStart(2, '0');
-           let orarioFineDisplay = `${oreFine}:${minutiFineStr}`;
-           
-           if (dataFine.getDate() !== dataInizio.getDate()) {
-               const giornoSuccessivo = dataFine.getDate();
-               orarioFineDisplay += ` (g.${giornoSuccessivo})`;
-           }
-           
-           card.find('.orario-fine-display').html(orarioFineDisplay);
-           
-           // Aggiorna orario successivo con stessa linea
-           updateNextSupplierTime(index, `${oreFine}:${minutiFineStr}`);
-       } else {
+       const dataLavorazione = $('#data-lavorazione').val();
+       if (!dataLavorazione) {
            card.find('.orario-fine-display').html('');
+           return;
        }
-   };
+       
+       const [oraInizio, minutiInizio] = orarioInizio.split(':').map(n => parseInt(n));
+       const dataInizio = new Date(dataLavorazione);
+       dataInizio.setHours(oraInizio, minutiInizio, 0, 0);
+       
+       const dataFine = new Date(dataInizio.getTime() + durataTotaleMinuti * 60 * 1000);
+       
+       // Arrotonda al quarto d'ora superiore
+       const minutiFine = dataFine.getMinutes();
+       const minutiArrotondati = Math.ceil(minutiFine / 15) * 15;
+       if (minutiArrotondati === 60) {
+           dataFine.setHours(dataFine.getHours() + 1, 0, 0, 0);
+       } else {
+           dataFine.setMinutes(minutiArrotondati, 0, 0);
+       }
+       
+       const oreFine = dataFine.getHours().toString().padStart(2, '0');
+       const minutiFineStr = dataFine.getMinutes().toString().padStart(2, '0');
+       let orarioFineDisplay = `${oreFine}:${minutiFineStr}`;
+       
+       if (dataFine.getDate() !== dataInizio.getDate()) {
+           const giornoSuccessivo = dataFine.getDate();
+           orarioFineDisplay += ` (g.${giornoSuccessivo})`;
+       }
+       
+       card.find('.orario-fine-display').html(orarioFineDisplay);
+       
+       // Aggiorna orario successivo con stessa linea
+       updateNextSupplierTime(index, `${oreFine}:${minutiFineStr}`);
+   } else {
+       card.find('.orario-fine-display').html('');
+   }
+};
 
-   // Nuova funzione per aggiornare l'orario del fornitore successivo
-   function updateNextSupplierTime(currentIndex, endTime) {
-       const currentCard = $(`.supplier-card[data-supplier-index="${currentIndex}"]`);
-       const currentLinea = currentCard.find('.linea-trasformazione').val();
+// Nuova funzione per aggiornare l'orario del fornitore successivo
+function updateNextSupplierTime(currentIndex, endTime) {
+   const currentCard = $(`.supplier-card[data-supplier-index="${currentIndex}"]`);
+   const currentLinea = currentCard.find('.linea-trasformazione').val();
+   
+   if (!currentLinea) return;
+   
+   // Trova il fornitore successivo con la stessa linea
+   let nextSupplier = null;
+   let nextIndex = currentIndex + 1;
+   
+   $('.supplier-card').each(function() {
+       const index = $(this).data('supplier-index');
+       const linea = $(this).find('.linea-trasformazione').val();
        
-       if (!currentLinea) return;
-       
-       // Trova il fornitore successivo con la stessa linea
-       let nextSupplier = null;
-       let nextIndex = currentIndex + 1;
-       
-       $('.supplier-card').each(function() {
-           const index = $(this).data('supplier-index');
-           const linea = $(this).find('.linea-trasformazione').val();
-           
-           if (index > currentIndex && linea === currentLinea) {
-               if (!nextSupplier || index < nextSupplier.data('supplier-index')) {
-                   nextSupplier = $(this);
-               }
+       if (index > currentIndex && linea === currentLinea) {
+           if (!nextSupplier || index < nextSupplier.data('supplier-index')) {
+               nextSupplier = $(this);
            }
-       });
-       
-       // Se trova un fornitore successivo con stessa linea, aggiorna il suo orario di inizio
-       if (nextSupplier) {
-           const orarioInizioField = nextSupplier.find('.orario-inizio');
-           // Aggiorna solo se il campo è vuoto o se non è stato modificato manualmente di recente
-           if (!orarioInizioField.val() || !orarioInizioField.data('manually-changed')) {
-               orarioInizioField.val(endTime);
-               calculateEndTime(nextSupplier.data('supplier-index'));
-           }
+       }
+   });
+   
+   // Se trova un fornitore successivo con stessa linea, aggiorna il suo orario di inizio
+   if (nextSupplier) {
+       const orarioInizioField = nextSupplier.find('.orario-inizio');
+       // Aggiorna solo se il campo è vuoto o se non è stato modificato manualmente di recente
+       if (!orarioInizioField.val() || !orarioInizioField.data('manually-changed')) {
+           orarioInizioField.val(endTime);
+           calculateEndTime(nextSupplier.data('supplier-index'));
        }
    }
+}   
 
-   // Gestione colori bio con aggiornamento ID simultaneo
+   // MODIFICATA: Gestione colori bio con aggiornamento ID simultaneo
    window.updateBioStyles = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        const certificazione = card.find('.certificazione-prodotto').val();
@@ -2163,7 +2067,7 @@ $(document).ready(function() {
        }
        
        updateCombinazioneOptions();
-       updateProductID(index);
+       updateProductID(index); // AGGIUNTO: Aggiorna ID quando cambia certificazione
    };
 
    window.toggleAltroVarieta = function(index) {
@@ -2172,7 +2076,7 @@ $(document).ready(function() {
        const altroField = card.find('.altra-varieta');
        
        if (varieta === 'ALTRO') {
-         altroField.removeClass('hidden-field');
+           altroField.removeClass('hidden-field');
        } else {
            altroField.addClass('hidden-field').val('');
        }
@@ -2202,7 +2106,7 @@ $(document).ready(function() {
        }
    };
 
-   // MODIFICATA: Sezione distribuzione con caratteristiche per destinazione (incluso disoleato)
+   // MODIFICATA: Sezione distribuzione con caratteristiche per destinazione
    window.updateDistributionSection = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        const selectedDestinations = Array.from(card.find('.destinazione-prima')[0].selectedOptions).map(option => option.value);
@@ -2254,13 +2158,12 @@ $(document).ready(function() {
            
            updateTransferOptions(index);
            updateDistributionTotal(index);
-           updateSupplierConcentrato(index); // Aggiorna il concentrato quando cambia destinazione
        } else {
            distributionSection.addClass('hidden-field');
        }
    };
 
-   // Aggiorna totale distribuzione
+   // MODIFICATA: Aggiorna totale distribuzione
    window.updateDistributionTotal = function(index) {
        const card = $(`.supplier-card[data-supplier-index="${index}"]`);
        let distributedTotal = 0;
@@ -2270,14 +2173,8 @@ $(document).ready(function() {
            distributedTotal += value;
        });
        
-       // MODIFICATA: Usa la quantità base per il calcolo del rimanente
-       let quantitaPrimaBase = parseFloat(card.find('.quantita-prima').val()) || 0;
-       
-       // Se c'è una composizione di trasferimenti, usa solo la base
-       if (transferCompositionData[index]) {
-           quantitaPrimaBase = transferCompositionData[index].baseAmount;
-       }
-       
+       // MODIFICATA: Usa la quantità base (senza considerare trasferimenti) per il calcolo
+       const quantitaPrimaBase = parseFloat(card.find('.quantita-prima').val()) || 0;
        const remaining = quantitaPrimaBase - distributedTotal;
        
        card.find('.remaining-value').text(remaining.toFixed(1));
@@ -2313,9 +2210,8 @@ $(document).ready(function() {
            if (otherIndex !== index) {
                const nome = $(this).find('.nome-fornitore').val();
                const altroNome = $(this).find('.altro-fornitore').val();
-               const displayName = nome === 'ALTRO' ? altroNome : nome;
-               
-               if (displayName) {
+               const displayName = nome === 'ALTRO' ? altroNome : nome
+              if (displayName) {
                    transferSelect.append(`<option value="${otherIndex}">F${otherIndex} - ${displayName}</option>`);
                }
            }
@@ -2329,7 +2225,41 @@ $(document).ready(function() {
        });
    }
 
-   // MODIFICATA: Esegui trasferimento mantenendo il campo quantità invariato del destinatario
+   // NUOVA: Funzione per aggiornare il display del totale con trasferimenti
+   function updateTransferTotalDisplay(index) {
+       const card = $(`.supplier-card[data-supplier-index="${index}"]`);
+       const baseAmount = parseFloat(card.find('.quantita-prima').val()) || 0;
+       const transferTotalSection = card.find('.transfer-total-section');
+       const totalDisplay = card.find(`#total-with-transfers-${index}`);
+       const compositionDetails = transferTotalSection.find('.transfer-composition-details');
+       
+       if (transferCompositionData[index]) {
+           // Ha ricevuto trasferimenti
+           const transfersTotal = transferCompositionData[index].details.reduce((sum, detail) => 
+               sum + parseFloat(detail.amount), 0);
+           const grandTotal = baseAmount + transfersTotal;
+           
+           transferTotalSection.removeClass('hidden-field');
+           totalDisplay.text(`${grandTotal.toFixed(1)} kg`);
+           
+           // Mostra dettagli composizione
+           const compositionText = transferCompositionData[index].details.map(detail => 
+               `+${detail.amount}kg da F${detail.fromSupplier} (${detail.fromName})`
+           ).join(', ');
+           compositionDetails.html(`<strong>Base:</strong> ${baseAmount}kg<br/><strong>Trasferimenti:</strong> ${compositionText}`);
+       } else {
+           // Nessun trasferimento
+           if (baseAmount > 0) {
+               transferTotalSection.removeClass('hidden-field');
+               totalDisplay.text(`${baseAmount.toFixed(1)} kg`);
+               compositionDetails.html('<strong>Solo produzione propria</strong>');
+           } else {
+               transferTotalSection.addClass('hidden-field');
+           }
+       }
+   }
+
+   // MODIFICATA: Esegui trasferimento mantenendo separate quantità base e trasferimenti
    window.executeTransfer = function(sourceIndex) {
        const sourceCard = $(`.supplier-card[data-supplier-index="${sourceIndex}"]`);
        const targetIndex = sourceCard.find('.transfer-destination').val();
@@ -2364,16 +2294,15 @@ $(document).ready(function() {
            return;
        }
        
-       // MODIFICATA: Il campo quantità del destinatario mantiene il valore base invariato
+       // MODIFICATA: Il campo quantità base rimane invariato, gestiamo solo la composizione
        const targetQuantitaPrimaField = targetCard.find('.quantita-prima');
-       const currentBaseAmount = parseFloat(targetQuantitaPrimaField.val()) || 0;
+       const baseAmount = parseFloat(targetQuantitaPrimaField.val()) || 0;
        
        // Inizializza la composizione del trasferimento se non esiste
        if (!transferCompositionData[targetIndex]) {
            transferCompositionData[targetIndex] = {
-               baseAmount: currentBaseAmount, // MANTIENE IL VALORE ORIGINALE
-               details: [],
-               total: currentBaseAmount
+               baseAmount: baseAmount,
+               details: []
            };
        }
        
@@ -2384,18 +2313,6 @@ $(document).ready(function() {
            amount: transferAmount
        });
        
-       // Calcola il nuovo totale mantenendo la base invariata
-       const baseAmount = transferCompositionData[targetIndex].baseAmount;
-       const transfersTotal = transferCompositionData[targetIndex].details.reduce((sum, detail) => 
-           sum + parseFloat(detail.amount), 0);
-       const newTotal = baseAmount + transfersTotal;
-       
-       transferCompositionData[targetIndex].total = newTotal;
-       
-       // Aggiorna solo il valore mostrato, NON la base
-       targetQuantitaPrimaField.val(newTotal.toFixed(1));
-       targetQuantitaPrimaField.addClass('transfer-result');
-       
        // Applica stili di trasferimento al fornitore destinatario
        targetCard.addClass('transfer-target');
        targetCard.find('.supplier-header').addClass('transfer-target');
@@ -2405,17 +2322,6 @@ $(document).ready(function() {
        if (!currentHeader.includes('(T)')) {
            targetCard.find('.supplier-header').html(currentHeader + ' (T)');
        }
-       
-       // Crea dettagli composizione da mostrare sotto il campo
-       const compositionText = transferCompositionData[targetIndex].details.map(detail => 
-           `F${detail.fromSupplier}= ${detail.amount}kg`
-       ).join(' + ');
-       const totalText = `Base ${baseAmount}kg + Trasf. ${transfersTotal.toFixed(1)}kg = Tot. ${newTotal.toFixed(1)}kg`;
-       
-       // Mostra i dettagli sotto il campo succo 1ª
-       const compositionDetailsContainer = targetCard.find('.transfer-composition-details');
-       compositionDetailsContainer.removeClass('hidden-field');
-       compositionDetailsContainer.html(`<strong>Composizione Trasferimenti:</strong><br/>${compositionText}<br/><strong>${totalText}</strong>`);
        
        // Salva trasferimento nei dati globali (per compatibilità)
        if (!transferData[targetIndex]) {
@@ -2428,15 +2334,21 @@ $(document).ready(function() {
            timestamp: new Date().toLocaleTimeString('it-IT')
        });
        
-       // MODIFICATO: Reset campi sorgente - azzera il campo "invia a"
+       // MODIFICATA: Azzera il campo quantità da trasferire
        sourceCard.find('.transfer-destination').val('');
        sourceCard.find('.transfer-qty').val('');
        
+       // Aggiorna i display totali
+       updateTransferTotalDisplay(targetIndex);
        updateDistributionTotal(targetIndex);
        updateDistributionTotal(sourceIndex);
        updateSupplierConcentrato(targetIndex);
        
-       alert(`Trasferimento completato!\n${transferAmount} kg trasferiti da F${sourceIndex} (${sourceName}) a F${targetIndex} (${targetName})\nNuova quantità totale F${targetIndex}: ${newTotal.toFixed(1)} kg\nDi cui base: ${baseAmount}kg + trasferimenti: ${transfersTotal.toFixed(1)}kg`);
+       const transfersTotal = transferCompositionData[targetIndex].details.reduce((sum, detail) => 
+           sum + parseFloat(detail.amount), 0);
+       const grandTotal = baseAmount + transfersTotal;
+       
+       alert(`Trasferimento completato!\n${transferAmount} kg trasferiti da F${sourceIndex} (${sourceName}) a F${targetIndex} (${targetName})\n\nF${targetIndex} - Composizione:\n- Base: ${baseAmount}kg\n- Trasferimenti: ${transfersTotal.toFixed(1)}kg\n- Totale: ${grandTotal.toFixed(1)}kg`);
    };
 
    function getSupplierDisplayName(card) {
@@ -2489,27 +2401,18 @@ $(document).ready(function() {
            // Reset quantità prodotti
            card.find('.quantita-prima').val('').removeClass('combination-result transfer-result');
            
-           // Reset campi caratteristiche
-           card.find('.disoleato-prima').val('NO');
-           card.find('.tenore-polpa-prima').val('STANDARD');
-           card.find('.brix-prima').val('NAT');
-           card.find('.bio-prima').val('SI');
-           card.find('.pastorizzato-prima').val('SI');
-           card.find('.conservato-prima').val('NO');
-           
            // Reset destinazioni
            card.find('.destinazione-prima')[0].selectedIndex = -1;
            
-           // Reset ID prodotto e concentrato
+           // Reset ID prodotto
            card.find('.product-id').val('');
-           card.find('.quantita-concentrato-prima').val('');
-           card.find('.concentrato-prima-row').addClass('hidden-field');
            
            // Reset sezioni
            card.find('.distribution-section').addClass('hidden-field');
            card.find('.transfer-details').addClass('hidden-field').html('');
            card.find('.combination-details').addClass('hidden-field').html('');
            card.find('.transfer-composition-details').addClass('hidden-field').html('');
+           card.find('.transfer-total-section').addClass('hidden-field');
            
            // Reset nome header
            card.find('.supplier-name').text('Nuovo Fornitore');
@@ -2521,6 +2424,7 @@ $(document).ready(function() {
            updateTotals();
            updateCombinazioneOptions();
            updateSummarySection();
+           updateTransferTotalDisplay(index);
            
            alert('Fornitore resettato con successo!');
        }
@@ -2557,7 +2461,7 @@ $(document).ready(function() {
        }
    };
 
-   // Aggiorna totali con nuova terminologia e logica
+   // MODIFICATA: Aggiorna totali con nuova terminologia e logica
    function updateTotals() {
        let totaleEntrata = 0;
        let totaleTrasformata = 0;
@@ -2648,7 +2552,7 @@ $(document).ready(function() {
        }
    }
 
-   // Sezione riepilogo con giallo uguale alle altre caselle e calcolo concentrato
+   // Sezione riepilogo con giallo uguale alle altre caselle e calcolo concentrato - MODIFICATA
    function updateSummarySection() {
        let totalSeconda = 0;
        let totalTorchiato = 0;
@@ -2826,7 +2730,7 @@ $(document).ready(function() {
        return $(`.supplier-card[data-supplier-index="${maxIndex}"]`);
    }
 
-   // Applica combinazione con nuovo sistema di visualizzazione
+   // MODIFICATA: Applica combinazione con nuovo sistema di visualizzazione
    function applyCombination(color) {
        const selectedCombo = $(`#combinazione-fornitori-${color}`).val();
        if (!selectedCombo) {
@@ -2880,7 +2784,7 @@ $(document).ready(function() {
            
            const quantitaPrimaField = lastSupplierInCombo.find('.quantita-prima');
            
-           // Mostra solo la quantità del fornitore finale
+           // NUOVA LOGICA: Mostra solo la quantità del fornitore finale
            quantitaPrimaField.val(lastSupplierQty.toFixed(1));
            quantitaPrimaField.addClass('combination-result');
            quantitaPrimaField.attr('data-combination-type', color);
@@ -2918,13 +2822,14 @@ $(document).ready(function() {
            
            updateDistributionTotal(lastSupplierInCombo.data('supplier-index'));
            updateSupplierConcentrato(lastSupplierInCombo.data('supplier-index'));
+           updateTransferTotalDisplay(lastSupplierInCombo.data('supplier-index'));
            
            const colorText = color.charAt(0).toUpperCase() + color.slice(1);
            alert(`Combinazione ${colorText} applicata!\n\nDettaglio:\n${combinationDetails.map(d => `F${d.supplierIndex} - ${d.nome}: ${d.quantita}kg × ${d.resa}% = ${d.risultato}kg`).join('\n')}\n\nTotale combinazione: ${totalCombination.toFixed(1)} kg\nQuantità F${lastSupplierIndex}: ${lastSupplierQty.toFixed(1)} kg`);
        }
    }
 
-   // Reset combinazione con ripristino colore grigio per TUTTI i fornitori
+   // MODIFICATA: Reset combinazione con ripristino colore grigio per TUTTI i fornitori
    function resetCombination(color) {
        // Rimuovi colori da TUTTI i fornitori che fanno parte di questa combinazione
        if (combinationData[color] && combinationData[color].indexes.length > 0) {
@@ -2957,6 +2862,7 @@ $(document).ready(function() {
                    calculateSupplier(cardIndex);
                    updateDistributionTotal(cardIndex);
                    updateSupplierConcentrato(cardIndex);
+                   updateTransferTotalDisplay(cardIndex);
                }
            });
        }
@@ -2994,14 +2900,14 @@ $(document).ready(function() {
        });
    }
 
-   // Funzioni di salvataggio e caricamento con gestione trasferimenti
+   // MODIFICATA: Funzioni di salvataggio e caricamento con gestione trasferimenti
    function collectProgramData() {
        const data = {
            tipoAgrume: $('#tipo-agrume-giornaliero').val(),
            dataLavorazione: $('#data-lavorazione').val(),
            ultimaRevisione: $('#last-revision').text(),
            transferData: transferData,
-           transferCompositionData: transferCompositionData,
+           transferCompositionData: transferCompositionData, // NUOVO
            combinationData: combinationData,
            fornitori: [],
            totaliSeconda: {
@@ -3036,7 +2942,7 @@ $(document).ready(function() {
                }
            });
            
-           // Raccogli caratteristiche per ogni destinazione (incluso disoleato)
+           // Raccogli caratteristiche per ogni destinazione
            const destinationsCharacteristics = {};
            destinazioniPrima.forEach(dest => {
                const charSection = $(this).find(`.destination-characteristics[data-dest="${dest}"]`);
@@ -3048,7 +2954,6 @@ $(document).ready(function() {
                        brixAltro: charSection.find('.dest-brix-altro').val(),
                        bio: charSection.find('.dest-bio').val(),
                        pastorizzato: charSection.find('.dest-pastorizzato').val(),
-                       disoleato: charSection.find('.dest-disoleato').val(),
                        conservato: charSection.find('.dest-conservato').val(),
                        note: charSection.find('.dest-note').val()
                    };
@@ -3090,7 +2995,6 @@ $(document).ready(function() {
                quantitaProdotti: {
                    prima: parseFloat($(this).find('.quantita-prima').val()) || 0
                },
-               quantitaConcentrato: $(this).find('.quantita-concentrato-prima').val(),
                productID: $(this).find('.product-id').val(),
                hasCombination: $(this).find('.quantita-prima').hasClass('combination-result'),
                combinationType: $(this).find('.quantita-prima').attr('data-combination-type') || '',
@@ -3102,18 +3006,6 @@ $(document).ready(function() {
                receivedTransfers: receivedTransfers,
                distributionData: distributionData,
                destinationsCharacteristics: destinationsCharacteristics,
-               caratteristicheProdotti: {
-                   prima: {
-                       disoleato: $(this).find('.disoleato-prima').val(),
-                       tenorePolpa: $(this).find('.tenore-polpa-prima').val(),
-                       altroTenore: $(this).find('.altro-tenore-prima').val(),
-                       brix: $(this).find('.brix-prima').val(),
-                       altroBrix: $(this).find('.altro-brix-prima').val(),
-                       bio: $(this).find('.bio-prima').val(),
-                       pastorizzato: $(this).find('.pastorizzato-prima').val(),
-                       conservato: $(this).find('.conservato-prima').val()
-                   }
-               },
                destinazioni: {
                    prima: destinazioniPrima.join(', '),
                    primaAltro: $(this).find('.altra-destinazione').val() || ''
@@ -3126,7 +3018,7 @@ $(document).ready(function() {
        return data;
    }
 
-   // Salvataggio su file con possibilità di scegliere cartella
+   // MIGLIORATO: Salvataggio su file con possibilità di scegliere cartella
    function saveToFile() {
        try {
            const data = collectProgramData();
@@ -3223,7 +3115,7 @@ $(document).ready(function() {
        $(this).val('');
    });
 
-   // Caricamento dati con gestione trasferimenti e disoleato
+   // MODIFICATA: Caricamento dati con gestione trasferimenti
    function loadDataFromObject(data) {
        // Ripristina dati base
        $('#tipo-agrume-giornaliero').val(data.tipoAgrume || '');
@@ -3232,7 +3124,7 @@ $(document).ready(function() {
        
        // Ripristina transfer e combination data
        transferData = data.transferData || {};
-       transferCompositionData = data.transferCompositionData || {};
+       transferCompositionData = data.transferCompositionData || {}; // NUOVO
        combinationData = data.combinationData || { verde: { indexes: [], details: [] }, azzurro: { indexes: [], details: [] }, viola: { indexes: [], details: [] } };
        
        // Rimuovi fornitori esistenti
@@ -3271,31 +3163,9 @@ $(document).ready(function() {
                
                // Quantità prodotti
                card.find('.quantita-prima').val(fornitore.quantitaProdotti?.prima || 0);
-               card.find('.quantita-concentrato-prima').val(fornitore.quantitaConcentrato || '');
                
                // ID Prodotto
                card.find('.product-id').val(fornitore.productID || '');
-               
-               // NUOVO: Ripristina caratteristiche prodotto incluso disoleato
-               if (fornitore.caratteristicheProdotti?.prima) {
-                   const prima = fornitore.caratteristicheProdotti.prima;
-                   card.find('.disoleato-prima').val(prima.disoleato || 'NO');
-                   card.find('.tenore-polpa-prima').val(prima.tenorePolpa || 'STANDARD');
-                   card.find('.altro-tenore-prima').val(prima.altroTenore || '');
-                   card.find('.brix-prima').val(prima.brix || 'NAT');
-                   card.find('.altro-brix-prima').val(prima.altroBrix || '');
-                   card.find('.bio-prima').val(prima.bio || 'SI');
-                   card.find('.pastorizzato-prima').val(prima.pastorizzato || 'SI');
-                   card.find('.conservato-prima').val(prima.conservato || 'NO');
-                   
-                   // Gestisci campi altro
-                   if (prima.tenorePolpa === 'ALTRO') {
-                       card.find('.altro-tenore-prima').removeClass('hidden-field');
-                   }
-                   if (prima.brix === 'ALTRO') {
-                       card.find('.altro-brix-prima').removeClass('hidden-field');
-                   }
-               }
                
                // Destinazioni
                if (fornitore.destinazioni?.prima) {
@@ -3336,7 +3206,7 @@ $(document).ready(function() {
                updateDistributionSection(index);
                updateSupplierConcentrato(index);
                
-               // Ripristina caratteristiche destinazioni (incluso disoleato)
+               // Ripristina caratteristiche destinazioni
                if (fornitore.destinationsCharacteristics) {
                    Object.entries(fornitore.destinationsCharacteristics).forEach(([dest, chars]) => {
                        const charSection = card.find(`.destination-characteristics[data-dest="${dest}"]`);
@@ -3347,7 +3217,6 @@ $(document).ready(function() {
                            charSection.find('.dest-brix-altro').val(chars.brixAltro || '');
                            charSection.find('.dest-bio').val(chars.bio || 'SI');
                            charSection.find('.dest-pastorizzato').val(chars.pastorizzato || 'SI');
-                           charSection.find('.dest-disoleato').val(chars.disoleato || 'NO');
                            charSection.find('.dest-conservato').val(chars.conservato || 'NO');
                            charSection.find('.dest-note').val(chars.note || '');
                            
@@ -3391,7 +3260,7 @@ $(document).ready(function() {
                    }
                }
                
-               // Gestisci trasferimenti ricevuti
+               // NUOVO: Gestisci trasferimenti ricevuti
                if (fornitore.hasTransferResult || fornitore.hasTransferComposition) {
                    card.find('.quantita-prima').addClass('transfer-result');
                    card.addClass('transfer-target');
@@ -3408,10 +3277,8 @@ $(document).ready(function() {
                    }
                }
                
-               // Mostra campo concentrato se necessario
-               if (fornitore.quantitaConcentrato) {
-                   card.find('.concentrato-prima-row').removeClass('hidden-field');
-               }
+               // Aggiorna display totale trasferimenti
+               updateTransferTotalDisplay(index);
            });
        }
        
@@ -3479,6 +3346,7 @@ $(document).ready(function() {
                calculateSupplier(index);
                updateDistributionTotal(index);
                updateSupplierConcentrato(index);
+               updateTransferTotalDisplay(index);
            });
            
            updateVarietyOptions(agrume);
@@ -3556,7 +3424,7 @@ $(document).ready(function() {
    initCurrentDate();
    updateSuppliersCount();
 
-   console.log('Sistema Programma Giornaliero Trasformazione inizializzato - Versione con trasferimenti corretti, disoleato e concentrato');
+   console.log('Sistema Programma Giornaliero Trasformazione inizializzato - Versione con trasferimenti migliorati che mantengono il campo quantità base separato e mostrano il totale in sezione dedicata');
 });
 </script>
 </body>
