@@ -2247,11 +2247,11 @@ $(document).ready(function() {
    }
 
    function updateAllTransferOptions() {
-       $('.supplier-card').each(function() {
-           const index = $(this).data('supplier-updateTransferOptions(index);
-       });
-   }
-
+   $('.supplier-card').each(function() {
+       const index = $(this).data('supplier-index');
+       updateTransferOptions(index);
+   });
+}
    // MODIFICATA: Esegui trasferimento mantenendo quantità base separata
    window.executeTransfer = function(sourceIndex) {
        const sourceCard = $(`.supplier-card[data-supplier-index="${sourceIndex}"]`);
